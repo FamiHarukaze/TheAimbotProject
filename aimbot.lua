@@ -1,27 +1,35 @@
--- Slightly modified wiki aimbot by Trollaux, random string function by tehhkp
+--[[
+    Credits:
+    Original modified wiki aimbot by Trollaux
+    Random string function by tehhkp modified by Trollaux
+]]--
 local usingMouseKey = false
 local aimkey = KEY_F
-local mousekey = MOUSE_MIDDLE
-local ltrs = { // to block for i=562819,1461946186481461 do hook.Remove("CreateMove", tostring(i)) end
-[1] = "a",
-[2] = "i",
-[3] = "m",
-[4] = "b",
-[5] = "o",
-[6] = "t",
-[7] = " ",
-[8] = "b",
-[9] = "r",
-[10] = "o",
+local mousekey = MOUSE_RIGHT
+local ltrs = {
+    [1] = "a",
+    [2] = "b",
+    [3] = "c",
+    [4] = "d",
+    [5] = "e",
+    [6] = "f",
+    [7] = "g",
+    [8] = "h",
+    [9] = "i",
+    [10] = "j",
 }
-local function randomstring(length) // no idea how to tab format, did the best I can :)
+local function randomstring(length)
 	local random = ""
 		for i=0,length do
 			local random = random .. ltrs[math.random(1,10)]
 		end
 	return random
 end
-hook.Add("CreateMove",randomstring(50), function()
+local function hookDatShit(HookType,Function)
+	local funcname = HookType.." | "..randomstring(10)
+	return hook.Add(HookType,funcname,Function)
+end
+hookDatShit("CreateMove", function()
 	local enabled = false
 	if usingMouseKey then enabled = (input.IsMouseDown(mousekey)) else enabled = (input.IsKeyDown(aimkey)) end
 	if enabled then

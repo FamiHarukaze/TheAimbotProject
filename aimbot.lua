@@ -1,56 +1,87 @@
 --[[
     Credits:
-    Original modified wiki aimbot by Trollaux
-    Random string function by tehhkp modified by Trollaux
+    	Fami Harukaze for cleaning all of this sperged code :^) Visit my channel: https://www.youtube.com/user/INTELINSIDECHANNEL
 ]]--
-local usingMouseKey = false
-local aimkey = KEY_F
-local mousekey = MOUSE_RIGHT
-local ltrs = {
-    [1] = "a",
-    [2] = "b",
-    [3] = "c",
-    [4] = "d",
-    [5] = "e",
-    [6] = "f",
-    [7] = "g",
-    [8] = "h",
-    [9] = "i",
-    [10] = "j",
-}
-local function randomstring(length)
-	local random = ""
-		for i=0,length do
-			local random = random .. ltrs[math.random(1,10)]
-		end
-	return random
-end
-local function hookDatShit(HookType,Function)
-	local funcname = HookType.." | "..randomstring(10)
-	return hook.Add(HookType,funcname,Function)
-end
-hookDatShit("CreateMove", function()
-	local enabled = false
-	if usingMouseKey then enabled = (input.IsMouseDown(mousekey)) else enabled = (input.IsKeyDown(aimkey)) end
-	if enabled then
-	local ply = LocalPlayer()
-	local trace = util.GetPlayerTrace( ply )
-	local traceRes = util.TraceLine( trace )
-	local shouldTarget = true
-	if traceRes.HitNonWorld then
-		local target = traceRes.Entity
-		if target:IsPlayer() then
-			if not shouldAttackFriends then
-				if target:GetFriendStatus() == "friend" then
-					shouldTarget = false	
-				end
-			end
-			if target:Alive() and target != LocalPlayer() and shouldTarget then
-			local targethead = target:LookupBone("ValveBiped.Bip01_Head1")
-			local targetheadpos,targetheadang = target:GetBonePosition(targethead)
-			ply:SetEyeAngles((targetheadpos - ply:GetShootPos()):Angle())
-		end
+
+local _R = debug.getregistry();
+local _G = _G;
+local cheat_notify = function(x) _G.chat.AddText(_G.Color(240,240,0,255),"TheAimbotProject| ",_G.Color(240,240,240),x); end;
+local g_pGetTeam = _R.Player.Team
+local g_pInVehicle = _R.Player.InVehicle
+local g_pIsAlive = _R.Player.Alive
+local g_pLocalToWorld = _R.Entity.LocalToWorld
+local g_pGetOBBCenter = _R.Entity.OBBCenter
+local g_GetCenter = function(x) if !x then return; end return g_pLocalToWorld(x,g_pGetOBBCenter(x)); end
+local g_pEyePos = _R.Entity.EyePos
+local g_ToAngles = _R.Vector.Angle
+
+--[[ // Todo: Unload Hooks
+local cheat_hooks = {};
+local function cheat_unload()
+	for k = 0, #cheat_hooks do local v = cheat_hooks[k];
+	_G.hook.Remove();
 	end
 end
+]]
+
+local g_pLocalPlayer = _G.LocalPlayer();
+local g_pAimbotTarget = nil;
+
+local function g_IsValidTarget(pEnt)
+	if (!pEnt) then return false; end
+	
+	if pEnt:IsPlayer() then
+		if (pEnt == g_pLocalPlayer) then return false; end
+	
+		if (!g_pIsAlive(pEnt)) then return false; end 
+		
+		if (g_pInVehicle(pEnt)) then return false; end
+
+		if (g_pGetTeam(pEnt) == TEAM_SPECTATOR) then return false; end
+	end
+	
+	return true;
 end
-end)
+
+local function g_AimbotThread()
+	g_pAimbotTarget = nil;
+	local pPlayers = player.GetAll(); -- local pEntities = ents.GetAll(); // Incaze you want to aim at npcs
+	for i = 1, #pPlayers do local pEnt = pPlayers[i]; -- Now let's iterate though players... 'i' is the integrer and 'pEnt' is the player entity
+		if (!g_IsValidTarget(pEnt)) then continue; end
+		g_pAimbotTarget = pEnt;
+	end
+end
+
+local function g_GetAimPosition(pEnt)
+	local vPrediction = _G.Vector(0,0,0); -- Make your own prediction, faggot.
+
+	return (g_GetCenter(pEnt) + vPrediction);
+end
+
+local function g_Aim(CUserCmd)
+	if (g_pAimbotTarget ~= nil) then
+		local vPosition = g_GetAimPosition(g_pAimbotTarget);
+		local aAngles = g_ToAngles(vPosition - g_pEyePos(g_pLocalPlayer))
+		aAngles.p = _G.math.NormalizeAngle(aAngles.p);
+		aAngles.y = _G.math.NormalizeAngle(aAngles.y);
+		
+		CUserCmd:SetViewAngles(aAngles)
+	end
+end
+
+local function hooked_CreateMove(CUserCmd, sequence_number, input_sample_frametime, active)
+
+	g_AimbotThread(); -- Search for a target
+
+	g_Aim(CUserCmd); -- Aim at the target if any.
+
+end
+
+local function hookAdd(hooked_vfuncname,hooked_nfunc)
+	_G.hook.Add(hooked_vfuncname,_G.tostring(math.random(666,133769420)),hooked_nfunc);
+	cheat_notify("Hook Added: "..hooked_vfuncname..".");
+end
+
+hookAdd("CreateMove",hooked_CreateMove)
+
+cheat_notify("Cheat Loaded.");
